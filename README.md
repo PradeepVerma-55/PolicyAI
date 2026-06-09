@@ -313,5 +313,4 @@ MIT License — free to use, modify, and distribute.
 
 ---
 
-*Built as part of the Codebasics AI Engineering Bootcamp.*
-*Demonstrating: RAG pipeline · Vector databases · Semantic search · LLM grounding · Vanilla Python vs LangChain*
+
