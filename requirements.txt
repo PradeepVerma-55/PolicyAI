@@ -15,4 +15,4 @@ langchain-groq                 # ChatGroq LLM wrapper
 langchain-text-splitters       # RecursiveCharacterTextSplitter etc.
 
 # ── Chatbot UI ─────────────────────────────────────────────────────────────────
-gradio                         # web UI — runs locally and on Hugging Face Spaces
+# gradio is pre-installed by HF Spaces — install locally with: pip install gradio
