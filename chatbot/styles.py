@@ -103,7 +103,7 @@ label > span   { display : none !important; }
 
 .header-sub {
     font-size  : 0.9rem;
-    color      : var(--text-mid);
+    color      : #8fa3c8 !important;
     margin     : 0 0 18px;
     font-weight: 400;
 }
@@ -121,10 +121,10 @@ label > span   { display : none !important; }
     letter-spacing: 0.02em;
     user-select  : none;
 }
-.badge-b { background: rgba(59,130,246,0.14); border: 1px solid rgba(59,130,246,0.3); color: #93c5fd; }
-.badge-g { background: rgba(52,211,153,0.12); border: 1px solid rgba(52,211,153,0.3); color: #6ee7b7; }
-.badge-v { background: rgba(129,140,248,0.13); border: 1px solid rgba(129,140,248,0.3); color: #c4b5fd; }
-.badge-o { background: rgba(251,191,36,0.11); border: 1px solid rgba(251,191,36,0.28); color: #fde68a; }
+.badge-b { background: rgba(59,130,246,0.14) !important; border: 1px solid rgba(59,130,246,0.3) !important; color: #93c5fd !important; }
+.badge-g { background: rgba(52,211,153,0.12) !important; border: 1px solid rgba(52,211,153,0.3) !important; color: #6ee7b7 !important; }
+.badge-v { background: rgba(129,140,248,0.13) !important; border: 1px solid rgba(129,140,248,0.3) !important; color: #c4b5fd !important; }
+.badge-o { background: rgba(251,191,36,0.11) !important; border: 1px solid rgba(251,191,36,0.28) !important; color: #fde68a !important; }
 
 /* ─────────────────────── Chat panel ──────────────────────── */
 #policyai-chat {
@@ -272,9 +272,9 @@ label > span   { display : none !important; }
     font-weight  : 600;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color        : var(--text-lo);
+    color        : #8fa3c8 !important;
     padding      : 14px 16px 10px;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid rgba(99,130,188,0.12);
 }
 
 .panel-body { padding: 10px 10px 12px; }
@@ -323,14 +323,14 @@ label > span   { display : none !important; }
 #policyai-footer {
     text-align  : center;
     font-size   : 11.5px;
-    color       : var(--text-lo);
+    color       : #5a7a9e !important;
     padding     : 14px 0 2px;
-    border-top  : 1px solid var(--border);
+    border-top  : 1px solid rgba(99,130,188,0.12);
     margin-top  : 6px;
 }
 
-#policyai-footer a { color: #3d546e; text-decoration: none; transition: color .15s; }
-#policyai-footer a:hover { color: var(--accent); }
+#policyai-footer a { color: #5a7a9e !important; text-decoration: none; transition: color .15s; }
+#policyai-footer a:hover { color: #3b82f6 !important; }
 #policyai-footer .sep { margin: 0 8px; opacity: .4; }
 
 /* ─────────────────────── Scrollbar ────────────────────────── */
