@@ -85,9 +85,11 @@ RAG_PROMPT = ChatPromptTemplate.from_messages([
     (
         "system",
         "You are a helpful HR policy assistant.\n"
-        "Answer using ONLY the context below. "
-        "Always cite the source document and page number.\n"
-        "If the answer is not in the context, say so — do not make things up.",
+        "Answer the question using ONLY the information in the context below.\n"
+        "Write a clear, direct answer in plain language — do NOT copy source labels, "
+        "page numbers, or document names into your answer. "
+        "Those are shown separately to the user.\n"
+        "If the answer is not in the context, say so honestly.",
     ),
     (
         "human",
@@ -165,7 +167,7 @@ def rag(query: str) -> tuple[str, str]:
     # Retrieve docs separately so we can return the context for inspection
     docs    = retriever.invoke(query)
     context = format_docs(docs)
-    answer  = rag_chain.invoke(query)
+    answer  = str(rag_chain.invoke(query))   # TextAccessor → plain str
     return answer, context
 
 

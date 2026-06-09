@@ -13,3 +13,6 @@ langchain-huggingface          # HuggingFaceEmbeddings wrapper
 langchain-qdrant               # QdrantVectorStore integration
 langchain-groq                 # ChatGroq LLM wrapper
 langchain-text-splitters       # RecursiveCharacterTextSplitter etc.
+
+# ── Chatbot UI ─────────────────────────────────────────────────────────────────
+gradio                         # web UI — runs locally and on Hugging Face Spaces

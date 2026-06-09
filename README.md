@@ -1,10 +1,24 @@
+---
+title: PolicyAI
+emoji: 🤖
+colorFrom: blue
+colorTo: indigo
+sdk: gradio
+sdk_version: "6.17.3"
+app_file: chatbot/app.py
+pinned: false
+---
+
 # PolicyAI 🤖📄
 
 > **"Your company's policies, finally answerable in seconds."**
 
 An AI-powered policy intelligence system that reads your company's PDF documents and answers employee questions instantly — with exact citations, zero hallucination, and zero manual searching.
 
-Built **two ways** side by side — once from scratch (Vanilla RAG) and once using LangChain — so you can clearly see what each layer of abstraction does for you.
+Built **three ways**:
+- **`vanilla_rag/`** — pure Python, no frameworks, every step explicit
+- **`langchain_rag/`** — same pipeline via LangChain + LCEL abstractions
+- **`chatbot/`** — professional Gradio chat UI on top of the LangChain pipeline, deployable to Hugging Face Spaces
 
 ---
 
@@ -40,10 +54,9 @@ Hundreds of policy documents sit in shared drives, intranets, and email attachme
 ```
 Employee  →  "How many sick leaves do I get?"
 
-PolicyAI  →  All regular employees are entitled to 18 Earned Leaves
-             in a calendar year. If you joined mid-year, leaves are
-             calculated on a pro-rata basis. Sick leave beyond 3
-             consecutive days requires a medical certificate.
+PolicyAI  →  Employees are entitled to 18 Earned Leaves per calendar year.
+             Leave is calculated on a pro-rata basis for mid-year joiners.
+             Sick leave beyond 3 consecutive days requires a medical certificate.
 
              📄 Source: HR-Policy.pdf — Page 3
              ⏱  Time: 3 seconds
@@ -51,20 +64,19 @@ PolicyAI  →  All regular employees are entitled to 18 Earned Leaves
 
 ---
 
-## 🔀 Two Implementations — Same Pipeline
+## 🔀 Three Implementations — Same Pipeline
 
-This project solves the same problem **twice** — so you understand both the raw concepts and what a framework like LangChain actually abstracts away.
-
-| Step | 🐍 vanilla_rag | 🦜 langchain_rag |
-|---|---|---|
-| **PDF Loading** | `requests` + `PyMuPDF` (manual) | `PyMuPDFLoader` |
-| **Chunking** | Custom 100-word word window | `RecursiveCharacterTextSplitter` |
-| **Embedding** | `SentenceTransformer.encode()` | `HuggingFaceEmbeddings` |
-| **Vector Store** | Manual `PointStruct` + `client.upsert()` | `QdrantVectorStore.from_documents()` |
-| **Retrieval** | Manual `query_points()` call | `vectorstore.as_retriever()` |
-| **LLM Call** | Raw `groq.chat.completions.create()` | `ChatGroq` |
-| **Prompt** | f-string | `ChatPromptTemplate` |
-| **Pipeline** | Manual `rag()` function | LCEL chain with `\|` operator |
+| Step | 🐍 vanilla_rag | 🦜 langchain_rag | 💬 chatbot |
+|---|---|---|---|
+| **PDF Loading** | `requests` + `PyMuPDF` | `PyMuPDFLoader` | via langchain_rag |
+| **Chunking** | Custom 100-word window | `RecursiveCharacterTextSplitter` | via langchain_rag |
+| **Embedding** | `SentenceTransformer.encode()` | `HuggingFaceEmbeddings` | via langchain_rag |
+| **Vector Store** | Manual `PointStruct` + `upsert()` | `QdrantVectorStore` | via langchain_rag |
+| **Retrieval** | Manual `query_points()` | `vectorstore.as_retriever()` | via langchain_rag |
+| **LLM** | Raw `groq.chat.completions` | `ChatGroq` | via langchain_rag |
+| **Pipeline** | Manual `rag()` function | LCEL chain `\|` | via langchain_rag |
+| **UI** | CLI / terminal | CLI / terminal | Gradio web app |
+| **Deploy** | Local only | Local only | Hugging Face Spaces |
 
 ---
 
@@ -117,16 +129,23 @@ PolicyAI/
 │   │   ├── 02_chunker.py         ← split pages into 100-word chunks
 │   │   ├── 03_embedder.py        ← embed chunks with sentence-transformers
 │   │   └── __init__.py           ← re-exports all functions cleanly
-│   ├── config.py                 ← all constants and env vars in one place
+│   ├── config.py                 ← all constants and env vars
 │   ├── 01_ingest.py              ← orchestrates the ingestion pipeline
 │   ├── 02_query.py               ← retrieve() + build_context() + rag()
 │   └── 03_demo.py                ← runs 5 sample questions end-to-end
 │
 ├── langchain_rag/                ← Same pipeline via LangChain abstractions
-│   ├── config.py                 ← all constants and env vars in one place
+│   ├── config.py                 ← all constants and env vars
 │   ├── 01_ingest.py              ← PyMuPDFLoader + splitter + QdrantVectorStore
 │   ├── 02_query.py               ← retriever + ChatGroq + LCEL chain
 │   └── 03_demo.py                ← runs 5 sample questions end-to-end
+│
+├── chatbot/                      ← Gradio chat UI (Hugging Face Spaces ready)
+│   ├── app.py                    ← entry point: path bootstrap + launch()
+│   ├── pipeline.py               ← ensure_indexed() + exposes rag()
+│   ├── handlers.py               ← respond() + clear_chat() handlers
+│   ├── styles.py                 ← dark-theme CSS
+│   └── ui.py                     ← Gradio layout + event wiring
 │
 ├── data/                         ← PDFs downloaded here (gitignored)
 ├── .env                          ← GROQ_API_KEY (never commit this)
@@ -141,13 +160,14 @@ PolicyAI/
 
 | Layer | Technology | Why |
 |---|---|---|
-| **PDF Extraction** | PyMuPDF 1.27.2 | Fast, reliable, no model download needed |
+| **PDF Extraction** | PyMuPDF 1.27.2 | Fast, reliable, page-level metadata |
 | **Chunking** | Word window / RecursiveCharacterTextSplitter | Preserves context, respects token limits |
 | **Embeddings** | all-MiniLM-L6-v2 (sentence-transformers) | 384-dim semantic vectors, runs fully offline |
 | **Vector Database** | Qdrant 1.18.0 | Local file-based, no Docker or server needed |
 | **Search Index** | HNSW (Hierarchical Navigable Small World) | Millisecond semantic search |
 | **LLM Inference** | Groq — llama-3.1-8b-instant | Free tier, ultra-fast inference |
 | **Framework** | LangChain + LCEL | Industry-standard RAG abstractions |
+| **Chat UI** | Gradio 6 | Web interface, one-command HF Spaces deploy |
 | **Language** | Python 3.10+ | |
 
 ---
@@ -202,7 +222,21 @@ GROQ_API_KEY=your_groq_api_key_here
 
 ## ▶️ Running the Project
 
-### 🐍 Vanilla RAG
+### 💬 Chatbot UI (Recommended)
+
+The fastest way to experience PolicyAI — a professional dark-theme web interface with a chat panel and a live sources panel.
+
+```bash
+python chatbot\app.py
+```
+
+Then open **http://localhost:7860** in your browser.
+
+On first run, the app automatically downloads the HR Policy PDF and indexes it (~30 seconds). Every subsequent start skips this step.
+
+---
+
+### 🐍 Vanilla RAG (CLI)
 
 ```bash
 # Step 1 — ingest the PDF (run once)
@@ -215,7 +249,7 @@ python vanilla_rag\02_query.py
 python vanilla_rag\03_demo.py
 ```
 
-### 🦜 LangChain RAG
+### 🦜 LangChain RAG (CLI)
 
 ```bash
 # Step 1 — ingest the PDF (run once)
@@ -227,6 +261,35 @@ python langchain_rag\02_query.py
 # Step 3 — run the full demo with 5 sample questions
 python langchain_rag\03_demo.py
 ```
+
+---
+
+## 🌐 Deploy to Hugging Face Spaces
+
+1. **Push this repo to GitHub**
+
+2. **Create a new Space** at [huggingface.co/new-space](https://huggingface.co/new-space)
+   - SDK: **Gradio**
+   - Link your GitHub repository
+
+3. **Set your API key** — Space Settings → Variables and Secrets → add `GROQ_API_KEY`
+
+4. **Add the Space config** — prepend this block to `README.md` in your Space:
+
+```yaml
+---
+title: PolicyAI
+emoji: 🤖
+colorFrom: blue
+colorTo: indigo
+sdk: gradio
+sdk_version: "6.17.3"
+app_file: chatbot/app.py
+pinned: false
+---
+```
+
+On cold start, the Space automatically downloads and indexes the PDF (~60 seconds), then serves queries instantly.
 
 ---
 
@@ -256,7 +319,7 @@ IT & Security Domain
 
 **Semantic search** — questions are matched to chunks by *meaning*, not keywords. *"How many days off do I get?"* finds the leave policy even though it doesn't use the word "leave".
 
-**LCEL chain (LangChain)** — LangChain Expression Language lets you declare the entire RAG pipeline with the `|` operator instead of writing step-by-step procedural code:
+**LCEL chain (LangChain)** — LangChain Expression Language lets you declare the entire RAG pipeline with the `|` operator:
 
 ```python
 rag_chain = (
@@ -267,7 +330,9 @@ rag_chain = (
 )
 ```
 
-**Same embedding model at ingestion and query time** — vectors are only comparable when produced by the same model. Using a different model at query time would return meaningless results.
+**Same embedding model at ingestion and query time** — vectors are only comparable when produced by the same model. Using a different model at query time returns meaningless results.
+
+**Separation of concerns (chatbot/)** — each file has exactly one responsibility: `pipeline.py` owns RAG init, `handlers.py` owns Gradio callbacks, `styles.py` owns CSS, `ui.py` owns layout, `app.py` is the entry point.
 
 ---
 
@@ -281,6 +346,7 @@ Phase 1 — Complete ✅
   ✅ Groq LLM grounded answers
   ✅ vanilla_rag  — pure Python, no frameworks
   ✅ langchain_rag — LangChain + LCEL chain
+  ✅ chatbot/      — Gradio UI, Hugging Face Spaces ready
 
 Phase 2 — Next 🔲
   🔲 Multi-domain support (HR + Safety + IT + Legal)
@@ -309,8 +375,7 @@ MIT License — free to use, modify, and distribute.
 - [Sentence Transformers](https://www.sbert.net) — all-MiniLM-L6-v2 embedding model
 - [Groq](https://console.groq.com) — fast LLM inference
 - [LangChain](https://python.langchain.com) — LLM application framework
-
+- [Gradio](https://gradio.app) — web UI framework for ML apps
 
 ---
-
 
