@@ -98,13 +98,15 @@ To add new sources, append an entry to `POLICY_SOURCES` in `langchain_rag/config
 
 | Step | 🐍 vanilla_rag | 🦜 langchain_rag | 💬 chatbot |
 |---|---|---|---|
-| **PDF Loading** | `requests` + `PyMuPDF` | `PyMuPDFLoader` | via langchain_rag |
-| **Chunking** | Custom 100-word window | `RecursiveCharacterTextSplitter` | via langchain_rag |
-| **Embedding** | `SentenceTransformer.encode()` | `HuggingFaceEmbeddings` | via langchain_rag |
-| **Vector Store** | Manual `PointStruct` + `upsert()` | `QdrantVectorStore` | via langchain_rag |
-| **Retrieval** | Manual `query_points()` | `vectorstore.as_retriever()` | via langchain_rag |
-| **LLM** | Raw `groq.chat.completions` | `ChatGroq` | via langchain_rag |
-| **Pipeline** | Manual `rag()` function | LCEL chain `\|` | via langchain_rag |
+| **PDF Loading** | `requests.get()` + `fitz.open()` + manual page loop | `PyMuPDFLoader(path).load()` → `List[Document]` | via langchain_rag |
+| **Chunking** | Custom 100-word sliding window, no boundary awareness | `RecursiveCharacterTextSplitter` — splits at `\n\n` → `\n` → ` ` → chars | via langchain_rag |
+| **Embedding** | `SentenceTransformer.encode(texts)` — raw numpy arrays | `HuggingFaceEmbeddings.embed_documents()` — LangChain Embeddings interface | via langchain_rag |
+| **Vector Store** | Manual `PointStruct(id, vector, payload)` + `client.upsert()` | `QdrantVectorStore.from_documents(docs, embedder)` — one call does all three | via langchain_rag |
+| **Retrieval** | `client.query_points(collection, query_vector, limit)` | `vectorstore.as_retriever(search_kwargs={"k": 6}).invoke(query)` | via langchain_rag |
+| **LLM Call** | `groq.chat.completions.create(model, messages)` — raw API | `ChatGroq(model, api_key)` — same interface as ChatOpenAI, ChatAnthropic | via langchain_rag |
+| **Parse Output** | `response.choices[0].message.content` | `StrOutputParser()` — extracts `.content` from `AIMessage` | via langchain_rag |
+| **Pipeline** | Manual `rag()` function — explicit step-by-step code | LCEL chain: `retriever \| format_docs \| prompt \| llm \| parser` | via langchain_rag |
+| **Swap LLM** | Edit multiple lines across the function | Change one line: `ChatGroq` → `ChatOpenAI` or `ChatAnthropic` | via langchain_rag |
 | **UI** | CLI / terminal | CLI / terminal | Gradio web app |
 | **Deploy** | Local only | Local only | Hugging Face Spaces |
 
