@@ -12,31 +12,33 @@ from handlers import respond, clear_chat
 
 SAMPLE_QUESTIONS = [
     "What are the leave entitlements for employees?",
-    "What is the maternity leave policy?",
-    "How does performance appraisal work?",
-    "What are the travel expense reimbursement rules?",
+    "What are the password and authentication requirements?",
+    "How should a security incident be reported and handled?",
+    "What security measures are required for remote work?",
     "What are the disciplinary action procedures?",
+    "How should employees be trained on IT security awareness?",
 ]
 
 # ── Layout ─────────────────────────────────────────────────────────────────────
-with gr.Blocks(title="PolicyAI — HR Intelligence") as demo:
+with gr.Blocks(title="PolicyAI — HR & IT Security Intelligence") as demo:
 
     # ── Header ─────────────────────────────────────────────────────────────────
     gr.HTML("""
     <div id="policyai-header">
         <div class="header-logo">
-            <span class="logo-icon">🤖</span>
+            <span class="logo-icon">&#128272;</span>
             <span class="logo-text">PolicyAI</span>
         </div>
         <p class="header-sub">
-            AI-powered HR policy intelligence &mdash; instant answers grounded in your
-            official documents with exact page citations.
+            AI-powered HR &amp; IT Security policy intelligence &mdash; instant answers grounded in
+            your HR policies, NIST Cybersecurity Framework, incident response guides,
+            and remote work security documents, with exact page citations.
         </p>
         <div class="badge-row">
-            <span class="badge badge-b">⚡ Groq &middot; llama-3.1-8b</span>
+            <span class="badge badge-b">&#9889; Groq &middot; llama-3.1-8b</span>
             <span class="badge badge-g">&#10003; Zero hallucination</span>
             <span class="badge badge-v">&#128196; Page-level citations</span>
-            <span class="badge badge-o">&#128274; Runs locally</span>
+            <span class="badge badge-o">&#128196; 5 Policy Sources</span>
         </div>
     </div>
     """)
@@ -55,11 +57,12 @@ with gr.Blocks(title="PolicyAI — HR Intelligence") as demo:
                 elem_id="policyai-chat",
                 placeholder=(
                     "<div style='text-align:center;padding:70px 20px;'>"
-                    "<div style='font-size:44px;margin-bottom:14px;'>🤖</div>"
+                    "<div style='font-size:44px;margin-bottom:14px;'>&#128272;</div>"
                     "<div style='font-size:15px;font-weight:600;color:#2a3f5a;'>"
                     "Ask PolicyAI anything</div>"
                     "<div style='font-size:13px;margin-top:8px;color:#1e2f42;'>"
-                    "Select a quick question on the right, or type your own below.</div>"
+                    "HR policies, IT security standards, incident response, remote work &mdash; "
+                    "select a quick question or type your own.</div>"
                     "</div>"
                 ),
             )

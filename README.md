@@ -1,6 +1,6 @@
 ---
 title: PolicyAI
-emoji: 🤖
+emoji: 🔒
 colorFrom: blue
 colorTo: indigo
 sdk: gradio
@@ -9,11 +9,11 @@ app_file: chatbot/app.py
 pinned: false
 ---
 
-# PolicyAI 🤖📄
+# PolicyAI 🔒📄
 
-> **"Your company's policies, finally answerable in seconds."**
+> **"Your company's HR and IT Security policies, finally answerable in seconds."**
 
-An AI-powered policy intelligence system that reads your company's PDF documents and answers employee questions instantly — with exact citations, zero hallucination, and zero manual searching.
+An AI-powered policy intelligence system that reads official policy documents — HR manuals, NIST cybersecurity standards, incident response guides, and more — and answers employee questions instantly, with exact citations, zero hallucination, and zero manual searching.
 
 Built **three ways**:
 - **`vanilla_rag/`** — pure Python, no frameworks, every step explicit
@@ -35,11 +35,11 @@ Hundreds of policy documents sit in shared drives, intranets, and email attachme
            HR opens a 120-page PDF, searches manually...
            25 minutes later replies with an answer.
 
-2:00 PM  — Site manager asks Safety: "What PPE is needed for excavation?"
-           Safety officer searches OSHA manual + internal doc...
+2:00 PM  — Developer asks IT: "What do I do if I suspect a phishing attack?"
+           IT Security searches the NIST incident response guide + internal docs...
            40 minutes wasted.
 
-4:00 PM  — Finance asks: "What is the vendor payment approval limit?"
+4:00 PM  — Remote employee asks: "What VPN and security tools do I need?"
            Three people CC'd on email. Nobody has the right version.
 ```
 
@@ -52,15 +52,45 @@ Hundreds of policy documents sit in shared drives, intranets, and email attachme
 **With PolicyAI — the same reality:**
 
 ```
-Employee  →  "How many sick leaves do I get?"
+Employee  ->  "What do I do if I suspect a phishing attack?"
 
-PolicyAI  →  Employees are entitled to 18 Earned Leaves per calendar year.
-             Leave is calculated on a pro-rata basis for mid-year joiners.
-             Sick leave beyond 3 consecutive days requires a medical certificate.
+PolicyAI  ->  When a security incident is suspected, users should immediately
+              report it to the IT Security team. Preserve all evidence —
+              do not delete emails or logs. Isolate the affected system from
+              the network if possible. Document the timeline of events.
 
-             📄 Source: HR-Policy.pdf — Page 3
-             ⏱  Time: 3 seconds
+              Source: NIST SP 800-61r2 [Incident Response] — Page 21
+              Time  : 3 seconds
 ```
+
+```
+Employee  ->  "How many sick leaves do I get?"
+
+PolicyAI  ->  Employees are entitled to 18 Earned Leaves per calendar year.
+              Leave is calculated on a pro-rata basis for mid-year joiners.
+              Sick leave beyond 3 consecutive days requires a medical certificate.
+
+              Source: HR Policy [Human Resources] — Page 3
+              Time  : 3 seconds
+```
+
+---
+
+## 📚 Policy Library (5 Sources, Indexed Automatically)
+
+All documents are publicly available and downloaded on first run:
+
+| # | Document | Category | Source |
+|---|---|---|---|
+| 1 | HR Policy | Human Resources | rikalp.in |
+| 2 | NIST Cybersecurity Framework v1.1 | IT Security | nvlpubs.nist.gov |
+| 3 | NIST SP 800-114r1: Telework & Remote Access Security | Remote Work Security | nvlpubs.nist.gov |
+| 4 | NIST SP 800-50: Building an IT Security Awareness Program | Security Training | nvlpubs.nist.gov |
+| 5 | NIST SP 800-61r2: Computer Security Incident Handling | Incident Response | nvlpubs.nist.gov |
+
+**Total indexed:** ~1,600 chunks across 268 pages of policy content.
+
+To add new sources, append an entry to `POLICY_SOURCES` in `langchain_rag/config.py` and delete `qdrant_data/` to trigger re-indexing.
 
 ---
 
@@ -83,37 +113,54 @@ PolicyAI  →  Employees are entitled to 18 Earned Leaves per calendar year.
 ## 🏗️ How PolicyAI Works
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                   INGESTION PHASE                           │
-│                (run once per document)                      │
-│                                                             │
-│   PDF Document  (URL or local file)                         │
-│         ↓                                                   │
-│   Extract text page by page      [PyMuPDF / PyMuPDFLoader]  │
-│         ↓                                                   │
-│   Split into chunks              [word window / splitter]   │
-│         ↓                                                   │
-│   Convert each chunk → vector    [all-MiniLM-L6-v2, 384-dim]│
-│         ↓                                                   │
-│   Store vector + text + page     [Qdrant local file store]  │
-└─────────────────────────────────────────────────────────────┘
++-------------------------------------------------------------+
+|                   INGESTION PHASE                           |
+|            (runs once — all 5 sources)                      |
+|                                                             |
+|   Source 1: HR Policy PDF          (Human Resources)        |
+|   Source 2: NIST CSF v1.1 PDF      (IT Security)            |
+|   Source 3: NIST 800-114r1 PDF     (Remote Work Security)   |
+|   Source 4: NIST 800-50 PDF        (Security Training)      |
+|   Source 5: NIST 800-61r2 PDF      (Incident Response)      |
+|         |                                                   |
+|         v                                                   |
+|   Extract text page by page        [PyMuPDFLoader]          |
+|   Tag each page: policy_name,                               |
+|                  policy_category   [custom metadata]        |
+|         |                                                   |
+|         v                                                   |
+|   Split into 500-char chunks       [RecursiveCharSplitter]  |
+|         |                                                   |
+|         v                                                   |
+|   Convert each chunk -> vector     [all-MiniLM-L6-v2]       |
+|         |                                                   |
+|         v                                                   |
+|   Store: vector + text + metadata  [Qdrant — 1,600 chunks]  |
++-------------------------------------------------------------+
 
-┌─────────────────────────────────────────────────────────────┐
-│                    QUERY PHASE                              │
-│               (runs on every question)                      │
-│                                                             │
-│   Employee question  (plain English)                        │
-│         ↓                                                   │
-│   Convert question → vector      [same embedding model]     │
-│         ↓                                                   │
-│   Semantic search — top 5 chunks [Qdrant HNSW index]        │
-│         ↓                                                   │
-│   Build context block with citations                        │
-│         ↓                                                   │
-│   Generate grounded answer       [Groq — llama-3.1-8b]      │
-│         ↓                                                   │
-│   Answer + Source Document + Page Number                    │
-└─────────────────────────────────────────────────────────────┘
++-------------------------------------------------------------+
+|                    QUERY PHASE                              |
+|               (runs on every question)                      |
+|                                                             |
+|   Employee question  (plain English)                        |
+|         |                                                   |
+|         v                                                   |
+|   Convert question -> vector       [same embedding model]   |
+|         |                                                   |
+|         v                                                   |
+|   Semantic search — top 6 chunks   [Qdrant HNSW index]      |
+|   Results span all 5 policy sources automatically           |
+|         |                                                   |
+|         v                                                   |
+|   Build cited context block                                 |
+|   "[NIST SP 800-61r2 [Incident Response] — Page 21]"        |
+|         |                                                   |
+|         v                                                   |
+|   Generate grounded answer         [Groq — llama-3.1-8b]   |
+|         |                                                   |
+|         v                                                   |
+|   Answer + Policy Name + Category + Page Number             |
++-------------------------------------------------------------+
 ```
 
 ---
@@ -122,36 +169,37 @@ PolicyAI  →  Employees are entitled to 18 Earned Leaves per calendar year.
 
 ```
 PolicyAI/
-│
-├── vanilla_rag/                  ← Pure Python — no frameworks
-│   ├── ingestion/
-│   │   ├── 01_doc_loader.py      ← fetch PDF, extract pages with PyMuPDF
-│   │   ├── 02_chunker.py         ← split pages into 100-word chunks
-│   │   ├── 03_embedder.py        ← embed chunks with sentence-transformers
-│   │   └── __init__.py           ← re-exports all functions cleanly
-│   ├── config.py                 ← all constants and env vars
-│   ├── 01_ingest.py              ← orchestrates the ingestion pipeline
-│   ├── 02_query.py               ← retrieve() + build_context() + rag()
-│   └── 03_demo.py                ← runs 5 sample questions end-to-end
-│
-├── langchain_rag/                ← Same pipeline via LangChain abstractions
-│   ├── config.py                 ← all constants and env vars
-│   ├── 01_ingest.py              ← PyMuPDFLoader + splitter + QdrantVectorStore
-│   ├── 02_query.py               ← retriever + ChatGroq + LCEL chain
-│   └── 03_demo.py                ← runs 5 sample questions end-to-end
-│
-├── chatbot/                      ← Gradio chat UI (Hugging Face Spaces ready)
-│   ├── app.py                    ← entry point: path bootstrap + launch()
-│   ├── pipeline.py               ← ensure_indexed() + exposes rag()
-│   ├── handlers.py               ← respond() + clear_chat() handlers
-│   ├── styles.py                 ← dark-theme CSS
-│   └── ui.py                     ← Gradio layout + event wiring
-│
-├── data/                         ← PDFs downloaded here (gitignored)
-├── .env                          ← GROQ_API_KEY (never commit this)
-├── .gitignore
-├── requirements.txt
-└── README.md
+|
++-- vanilla_rag/                  <- Pure Python -- no frameworks
+|   +-- ingestion/
+|   |   +-- 01_doc_loader.py      <- fetch PDF, extract pages with PyMuPDF
+|   |   +-- 02_chunker.py         <- split pages into 100-word chunks
+|   |   +-- 03_embedder.py        <- embed chunks with sentence-transformers
+|   |   +-- __init__.py           <- re-exports all functions cleanly
+|   +-- config.py                 <- all constants and env vars
+|   +-- 01_ingest.py              <- orchestrates the ingestion pipeline
+|   +-- 02_query.py               <- retrieve() + build_context() + rag()
+|   +-- 03_demo.py                <- runs sample questions end-to-end
+|
++-- langchain_rag/                <- Same pipeline via LangChain abstractions
+|   +-- config.py                 <- POLICY_SOURCES list + all constants
+|   +-- 01_ingest.py              <- multi-source download, stamp metadata, index
+|   +-- 02_query.py               <- retriever + ChatGroq + LCEL chain
+|   +-- 03_demo.py                <- runs HR + IT Security sample questions
+|
++-- chatbot/                      <- Gradio chat UI (Hugging Face Spaces ready)
+|   +-- app.py                    <- entry point: path bootstrap + launch()
+|   +-- pipeline.py               <- ensure_indexed() for all 5 sources + rag()
+|   +-- handlers.py               <- respond() + clear_chat() handlers
+|   +-- styles.py                 <- dark-theme CSS
+|   +-- ui.py                     <- Gradio layout + event wiring
+|
++-- data/                         <- PDFs downloaded here (gitignored)
++-- qdrant_data/                  <- Qdrant vector index (gitignored)
++-- .env                          <- GROQ_API_KEY (never commit this)
++-- .gitignore
++-- requirements.txt
++-- README.md
 ```
 
 ---
@@ -160,14 +208,14 @@ PolicyAI/
 
 | Layer | Technology | Why |
 |---|---|---|
-| **PDF Extraction** | PyMuPDF 1.27.2 | Fast, reliable, page-level metadata |
-| **Chunking** | Word window / RecursiveCharacterTextSplitter | Preserves context, respects token limits |
+| **PDF Extraction** | PyMuPDF | Fast, reliable, page-level metadata |
+| **Chunking** | RecursiveCharacterTextSplitter | Preserves context, respects token limits |
 | **Embeddings** | all-MiniLM-L6-v2 (sentence-transformers) | 384-dim semantic vectors, runs fully offline |
-| **Vector Database** | Qdrant 1.18.0 | Local file-based, no Docker or server needed |
-| **Search Index** | HNSW (Hierarchical Navigable Small World) | Millisecond semantic search |
+| **Vector Database** | Qdrant | Local file-based, no Docker or server needed |
+| **Search Index** | HNSW (Hierarchical Navigable Small World) | Millisecond semantic search across 1,600+ chunks |
 | **LLM Inference** | Groq — llama-3.1-8b-instant | Free tier, ultra-fast inference |
 | **Framework** | LangChain + LCEL | Industry-standard RAG abstractions |
-| **Chat UI** | Gradio 6 | Web interface, one-command HF Spaces deploy |
+| **Chat UI** | Gradio | Web interface, one-command HF Spaces deploy |
 | **Language** | Python 3.10+ | |
 
 ---
@@ -177,10 +225,11 @@ PolicyAI/
 | Challenge | GPT Alone | PolicyAI (RAG) |
 |---|---|---|
 | Your private HR manual | ❌ Has never seen it | ✅ Fully indexed and searchable |
-| 200-page PDF | ❌ Context window too small | ✅ Retrieves only the relevant chunks |
+| 200-page NIST PDF | ❌ Context window too small | ✅ Retrieves only the relevant chunks |
 | Policy updated last week | ❌ Training cutoff months ago | ✅ Re-index in minutes |
-| Cited, verifiable answer | ❌ Confident but unverifiable | ✅ Exact page number and section |
+| Cited, verifiable answer | ❌ Confident but unverifiable | ✅ Exact policy name, category, and page |
 | Private company data | ❌ Data sent to external servers | ✅ Everything runs locally |
+| Multi-domain questions | ❌ No document context at all | ✅ Searches all 5 sources simultaneously |
 
 ---
 
@@ -224,41 +273,39 @@ GROQ_API_KEY=your_groq_api_key_here
 
 ### 💬 Chatbot UI (Recommended)
 
-The fastest way to experience PolicyAI — a professional dark-theme web interface with a chat panel and a live sources panel.
-
 ```bash
 python chatbot\app.py
 ```
 
 Then open **http://localhost:7860** in your browser.
 
-On first run, the app automatically downloads the HR Policy PDF and indexes it (~30 seconds). Every subsequent start skips this step.
+On first run, the app automatically downloads all 5 policy PDFs (~8 MB total) and indexes 1,600+ chunks into Qdrant (~2–3 minutes). Every subsequent start skips this step and loads in seconds.
 
 ---
 
 ### 🐍 Vanilla RAG (CLI)
 
 ```bash
-# Step 1 — ingest the PDF (run once)
+# Step 1 — ingest the HR Policy PDF (run once)
 python vanilla_rag\01_ingest.py
 
 # Step 2 — ask a question interactively
 python vanilla_rag\02_query.py
 
-# Step 3 — run the full demo with 5 sample questions
+# Step 3 — run the full demo
 python vanilla_rag\03_demo.py
 ```
 
 ### 🦜 LangChain RAG (CLI)
 
 ```bash
-# Step 1 — ingest the PDF (run once)
+# Step 1 — download and index all 5 policy sources (run once)
 python langchain_rag\01_ingest.py
 
 # Step 2 — ask a question interactively
 python langchain_rag\02_query.py
 
-# Step 3 — run the full demo with 5 sample questions
+# Step 3 — run the full demo with HR + IT Security questions
 python langchain_rag\03_demo.py
 ```
 
@@ -274,22 +321,7 @@ python langchain_rag\03_demo.py
 
 3. **Set your API key** — Space Settings → Variables and Secrets → add `GROQ_API_KEY`
 
-4. **Add the Space config** — prepend this block to `README.md` in your Space:
-
-```yaml
----
-title: PolicyAI
-emoji: 🤖
-colorFrom: blue
-colorTo: indigo
-sdk: gradio
-sdk_version: "6.17.3"
-app_file: chatbot/app.py
-pinned: false
----
-```
-
-On cold start, the Space automatically downloads and indexes the PDF (~60 seconds), then serves queries instantly.
+On cold start, the Space automatically downloads all 5 policy PDFs and indexes them (~3 minutes), then serves queries instantly.
 
 ---
 
@@ -297,29 +329,51 @@ On cold start, the Space automatically downloads and indexes the PDF (~60 second
 
 ```
 HR Domain
-─────────────────────────────────────
+---------------------------------------------
 "What are the leave entitlements for employees?"
 "What is the maternity leave policy?"
 "How does the performance appraisal process work?"
 "What are the travel expense reimbursement rules?"
 "What are the disciplinary action procedures?"
 
-IT & Security Domain
-─────────────────────────────────────
-"Can employees use personal devices for work?"
-"What should I do if I suspect a security breach?"
-"What is the password policy?"
+IT Security Domain
+---------------------------------------------
+"What are the password and authentication requirements?"
+"What does the NIST Cybersecurity Framework say about threat detection?"
+"How should a security incident be reported and handled?"
+"What are the five core functions of the NIST CSF?"
+
+Remote Work Security
+---------------------------------------------
+"What security measures are required for remote work?"
+"What VPN and device requirements apply to remote employees?"
+"How should employees handle sensitive data on personal devices?"
+
+Incident Response
+---------------------------------------------
+"What are the steps to contain a cybersecurity incident?"
+"What evidence should be preserved after a security breach?"
+"What is the difference between an incident and an event?"
+
+Security Awareness
+---------------------------------------------
+"How should employees be trained on IT security?"
+"What are the key components of a security awareness program?"
 ```
 
 ---
 
 ## 🧠 Key Concepts Demonstrated
 
-**RAG (Retrieval-Augmented Generation)** — instead of asking the LLM from memory, we retrieve the most relevant document chunks first, then ask the LLM to answer using only those chunks. This prevents hallucination and makes every answer verifiable.
+**RAG (Retrieval-Augmented Generation)** — instead of asking the LLM from memory, we retrieve the most relevant document chunks first, then ask the LLM to answer using only those chunks. Prevents hallucination and makes every answer verifiable.
 
-**Semantic search** — questions are matched to chunks by *meaning*, not keywords. *"How many days off do I get?"* finds the leave policy even though it doesn't use the word "leave".
+**Multi-source retrieval** — a single query searches all 5 policy sources simultaneously. Qdrant's HNSW index returns the top-6 most semantically relevant chunks regardless of which document they came from.
 
-**LCEL chain (LangChain)** — LangChain Expression Language lets you declare the entire RAG pipeline with the `|` operator:
+**Metadata-enriched chunks** — every chunk is stamped with `policy_name` and `policy_category` at ingestion time, so citations always show which document and policy domain answered the question.
+
+**Semantic search** — questions are matched by *meaning*, not keywords. *"What do I do if someone hacks us?"* finds the incident response guide even though it doesn't use the word "hack".
+
+**LCEL chain (LangChain)** — LangChain Expression Language declares the entire RAG pipeline with the `|` operator:
 
 ```python
 rag_chain = (
@@ -330,8 +384,6 @@ rag_chain = (
 )
 ```
 
-**Same embedding model at ingestion and query time** — vectors are only comparable when produced by the same model. Using a different model at query time returns meaningless results.
-
 **Separation of concerns (chatbot/)** — each file has exactly one responsibility: `pipeline.py` owns RAG init, `handlers.py` owns Gradio callbacks, `styles.py` owns CSS, `ui.py` owns layout, `app.py` is the entry point.
 
 ---
@@ -339,26 +391,32 @@ rag_chain = (
 ## 🗺️ Roadmap
 
 ```
-Phase 1 — Complete ✅
-  ✅ HR Policy document ingestion and Q&A
-  ✅ Page-level citations
-  ✅ Semantic search with Qdrant
-  ✅ Groq LLM grounded answers
-  ✅ vanilla_rag  — pure Python, no frameworks
-  ✅ langchain_rag — LangChain + LCEL chain
-  ✅ chatbot/      — Gradio UI, Hugging Face Spaces ready
+Phase 1 — Complete
+  HR Policy document ingestion and Q&A
+  Page-level citations
+  Semantic search with Qdrant
+  Groq LLM grounded answers
+  vanilla_rag  -- pure Python, no frameworks
+  langchain_rag -- LangChain + LCEL chain
+  chatbot/      -- Gradio UI, Hugging Face Spaces ready
 
-Phase 2 — Next 🔲
-  🔲 Multi-domain support (HR + Safety + IT + Legal)
-  🔲 Source filtering (HR questions → search only HR docs)
-  🔲 Upgrade PDF parsing to Docling (hierarchical chunking)
+Phase 2 — Complete
+  Multi-domain support: HR + IT Security + Incident Response + Remote Work
+  5 publicly available policy sources indexed automatically
+  Policy category tags on every source citation
+  Configurable POLICY_SOURCES list for easy extension
 
-Phase 3 — Future 🔲
-  🔲 REST API via FastAPI
-  🔲 Slack bot integration
-  🔲 Role-based access — employees only see permitted documents
-  🔲 Conflict detection — "Do these two policies contradict each other?"
-  🔲 Auto-refresh — re-index when a document is updated
+Phase 3 — Next
+  Source filtering (HR questions -> search only HR docs)
+  Upgrade PDF parsing to Docling (hierarchical chunking)
+  Add web page support (HTML policies, not just PDFs)
+
+Phase 4 — Future
+  REST API via FastAPI
+  Slack bot integration
+  Role-based access -- employees only see permitted documents
+  Conflict detection -- "Do these two policies contradict each other?"
+  Auto-refresh -- re-index when a document is updated
 ```
 
 ---
@@ -376,6 +434,4 @@ MIT License — free to use, modify, and distribute.
 - [Groq](https://console.groq.com) — fast LLM inference
 - [LangChain](https://python.langchain.com) — LLM application framework
 - [Gradio](https://gradio.app) — web UI framework for ML apps
-
----
-
+- [NIST](https://www.nist.gov) — publicly available cybersecurity frameworks and guidelines

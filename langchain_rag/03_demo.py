@@ -18,16 +18,17 @@ rag    = _query.rag
 
 # ── Sample questions ───────────────────────────────────────────────────────────
 SAMPLE_QUESTIONS = [
-    "What are the leave entitlements for employees?",
-    "What is the maternity leave policy?",
-    "How does the performance appraisal process work?",
-    "What are the travel expense reimbursement rules?",
-    "What are the disciplinary action procedures?",
+    "What are the password and authentication requirements?",
+    "How should a security incident be reported and handled?",
+    "What security measures are required for remote work and VPN access?",
+    "What is the NIST Cybersecurity Framework's approach to threat detection?",
+    "How should employees be trained on IT security awareness?",
+    "What are the leave and HR policy entitlements for employees?",
 ]
 
 # ── Run demo ───────────────────────────────────────────────────────────────────
 print("=" * 60)
-print("   PolicyAI (LangChain RAG) — Full Pipeline Demo")
+print("   PolicyAI (IT & Security RAG) — Full Pipeline Demo")
 print("=" * 60)
 
 for i, question in enumerate(SAMPLE_QUESTIONS, start=1):
