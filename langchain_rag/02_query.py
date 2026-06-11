@@ -84,9 +84,12 @@ llm = ChatGroq(
 RAG_PROMPT = ChatPromptTemplate.from_messages([
     (
         "system",
-        "You are a helpful HR policy assistant.\n"
-        "Answer the question using ONLY the information in the context below.\n"
-        "Write a clear, direct answer in plain language — do NOT copy source labels, "
+        "You are a knowledgeable HR and IT Security Policy assistant.\n"
+        "Answer questions using ONLY the information in the context below, which comes from "
+        "official policy documents: HR policies (leave, appraisal, conduct, travel), "
+        "the NIST Cybersecurity Framework, remote work security guidelines, "
+        "IT security awareness training materials, and incident response procedures.\n"
+        "Write a clear, direct answer in professional language — do NOT copy source labels, "
         "page numbers, or document names into your answer. "
         "Those are shown separately to the user.\n"
         "If the answer is not in the context, say so honestly.",
@@ -111,9 +114,12 @@ def format_docs(docs: list) -> str:
     """Convert a list of retrieved Documents into a cited context string."""
     parts = []
     for i, doc in enumerate(docs, 1):
-        source = doc.metadata.get("source", "unknown").split("\\")[-1]
-        page   = doc.metadata.get("page", "?")
-        parts.append(f"[Source {i} | {source} — Page {page}]\n{doc.page_content}")
+        name     = doc.metadata.get("policy_name") or \
+                   doc.metadata.get("source", "unknown").split("\\")[-1].split("/")[-1]
+        category = doc.metadata.get("policy_category", "")
+        page     = doc.metadata.get("page", "?")
+        label    = f"{name} [{category}] — Page {page}" if category else f"{name} — Page {page}"
+        parts.append(f"[Source {i} | {label}]\n{doc.page_content}")
     return "\n\n---\n\n".join(parts)
 
 

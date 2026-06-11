@@ -1,18 +1,12 @@
-# ── Vanilla RAG dependencies ───────────────────────────────────────────────────
-pymupdf==1.27.2                # PDF text extraction
-sentence-transformers==5.5.1   # local embedding model (all-MiniLM-L6-v2)
-qdrant-client==1.18.0          # vector database (local file mode)
-groq==1.1.1                    # Groq LLM API client
-python-dotenv                  # loads .env into os.environ
-requests                       # HTTP — fetches PDFs from URLs
-
-# ── LangChain RAG dependencies ─────────────────────────────────────────────────
-langchain                      # core abstractions (Document, chains, runnables)
-langchain-community            # document loaders (PyMuPDFLoader, WebBaseLoader etc.)
-langchain-huggingface          # HuggingFaceEmbeddings wrapper
-langchain-qdrant               # QdrantVectorStore integration
-langchain-groq                 # ChatGroq LLM wrapper
-langchain-text-splitters       # RecursiveCharacterTextSplitter etc.
-
-# ── Chatbot UI ─────────────────────────────────────────────────────────────────
-gradio                         # web UI — runs locally and on Hugging Face Spaces
+pymupdf
+sentence-transformers
+qdrant-client
+groq
+python-dotenv
+requests
+langchain
+langchain-community
+langchain-huggingface
+langchain-qdrant
+langchain-groq
+langchain-text-splitters

@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PolicyAI — Technical Report</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  /* ── Reset & tokens ─────────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy      : #0a1628;
+    --navy-mid  : #112240;
+    --blue      : #1e4faa;
+    --blue-light: #3b82f6;
+    --blue-pale : #dbeafe;
+    --teal      : #0d9488;
+    --teal-pale : #ccfbf1;
+    --amber     : #d97706;
+    --amber-pale: #fef3c7;
+    --red       : #dc2626;
+    --red-pale  : #fee2e2;
+    --green     : #16a34a;
+    --green-pale: #dcfce7;
+    --text      : #0f172a;
+    --text-mid  : #334155;
+    --text-lo   : #64748b;
+    --border    : #e2e8f0;
+    --bg        : #f8fafc;
+    --white     : #ffffff;
+    --radius    : 10px;
+    --shadow    : 0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
+    --shadow-lg : 0 8px 32px rgba(0,0,0,.12);
+    --font      : 'Inter', system-ui, sans-serif;
+    --mono      : 'JetBrains Mono', 'Fira Code', monospace;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family : var(--font);
+    background  : var(--bg);
+    color       : var(--text);
+    line-height : 1.7;
+    font-size   : 15px;
+  }
+
+  /* ── Cover ──────────────────────────────────────────────────────── */
+  .cover {
+    background  : linear-gradient(135deg, var(--navy) 0%, #1a3a6e 60%, #1e4faa 100%);
+    color       : #fff;
+    padding     : 80px 60px 70px;
+    position    : relative;
+    overflow    : hidden;
+  }
+  .cover::before {
+    content    : '';
+    position   : absolute;
+    inset      : 0;
+    background : url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  }
+  .cover-inner  { position: relative; max-width: 860px; }
+  .cover-badge  {
+    display     : inline-flex;
+    align-items : center;
+    gap         : 8px;
+    background  : rgba(255,255,255,.12);
+    border      : 1px solid rgba(255,255,255,.2);
+    border-radius: 999px;
+    padding     : 6px 16px;
+    font-size   : 12px;
+    font-weight : 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    margin-bottom: 28px;
+    color       : #93c5fd;
+  }
+  .cover h1 {
+    font-size   : 52px;
+    font-weight : 800;
+    line-height : 1.1;
+    letter-spacing: -.02em;
+    margin-bottom: 18px;
+  }
+  .cover h1 span { color: #60a5fa; }
+  .cover-sub {
+    font-size   : 18px;
+    font-weight : 400;
+    color       : #93c5fd;
+    max-width   : 620px;
+    margin-bottom: 48px;
+    line-height : 1.6;
+  }
+  .cover-meta {
+    display     : flex;
+    flex-wrap   : wrap;
+    gap         : 32px;
+  }
+  .cover-meta-item { }
+  .cover-meta-item .label {
+    font-size   : 11px;
+    font-weight : 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color       : #64748b;
+    margin-bottom: 4px;
+  }
+  .cover-meta-item .value {
+    font-size   : 14px;
+    font-weight : 500;
+    color       : #e2e8f0;
+  }
+  .cover-pills {
+    display     : flex;
+    flex-wrap   : wrap;
+    gap         : 10px;
+    margin-top  : 36px;
+  }
+  .pill {
+    background  : rgba(255,255,255,.1);
+    border      : 1px solid rgba(255,255,255,.15);
+    border-radius: 999px;
+    padding     : 5px 14px;
+    font-size   : 12px;
+    font-weight : 500;
+    color       : #cbd5e1;
+  }
+
+  /* ── Layout ─────────────────────────────────────────────────────── */
+  .layout { display: flex; max-width: 1100px; margin: 0 auto; }
+
+  /* ── Sidebar / TOC ──────────────────────────────────────────────── */
+  .toc {
+    width       : 230px;
+    flex-shrink : 0;
+    padding     : 40px 0 40px 28px;
+    position    : sticky;
+    top         : 0;
+    height      : 100vh;
+    overflow-y  : auto;
+  }
+  .toc-title {
+    font-size   : 10px;
+    font-weight : 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color       : var(--text-lo);
+    margin-bottom: 14px;
+  }
+  .toc a {
+    display     : block;
+    font-size   : 12.5px;
+    color       : var(--text-mid);
+    text-decoration: none;
+    padding     : 5px 10px;
+    border-left : 2px solid transparent;
+    transition  : all .15s;
+    border-radius: 0 4px 4px 0;
+  }
+  .toc a:hover {
+    color       : var(--blue-light);
+    border-left-color: var(--blue-light);
+    background  : var(--blue-pale);
+  }
+  .toc .toc-section { margin-top: 10px; }
+  .toc .toc-sub a   { padding-left: 22px; font-size: 11.5px; color: var(--text-lo); }
+
+  /* ── Main content ───────────────────────────────────────────────── */
+  .main   { flex: 1; min-width: 0; padding: 48px 48px 80px 40px; }
+
+  /* ── Section ────────────────────────────────────────────────────── */
+  .section { margin-bottom: 60px; }
+  .section-label {
+    font-size   : 10px;
+    font-weight : 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color       : var(--blue-light);
+    margin-bottom: 8px;
+  }
+  .section h2 {
+    font-size   : 26px;
+    font-weight : 700;
+    color       : var(--navy);
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 2px solid var(--border);
+  }
+  .section h3 {
+    font-size   : 16px;
+    font-weight : 700;
+    color       : var(--navy-mid);
+    margin: 28px 0 12px;
+  }
+  p { margin-bottom: 14px; color: var(--text-mid); }
+
+  /* ── Card ───────────────────────────────────────────────────────── */
+  .card {
+    background  : var(--white);
+    border      : 1px solid var(--border);
+    border-radius: var(--radius);
+    padding     : 24px 28px;
+    box-shadow  : var(--shadow);
+    margin-bottom: 20px;
+  }
+  .card-title {
+    font-size   : 13px;
+    font-weight : 700;
+    color       : var(--navy);
+    margin-bottom: 14px;
+    display     : flex;
+    align-items : center;
+    gap         : 8px;
+  }
+
+  /* ── Grid ───────────────────────────────────────────────────────── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+  /* ── Stat cards ─────────────────────────────────────────────────── */
+  .stat-card {
+    background  : var(--white);
+    border      : 1px solid var(--border);
+    border-radius: var(--radius);
+    padding     : 20px 22px;
+    box-shadow  : var(--shadow);
+    text-align  : center;
+  }
+  .stat-num {
+    font-size   : 36px;
+    font-weight : 800;
+    color       : var(--blue);
+    line-height : 1;
+    margin-bottom: 6px;
+  }
+  .stat-label { font-size: 12px; color: var(--text-lo); font-weight: 500; }
+
+  /* ── Table ──────────────────────────────────────────────────────── */
+  .table-wrap { overflow-x: auto; margin: 20px 0; }
+  table {
+    width       : 100%;
+    border-collapse: collapse;
+    font-size   : 13.5px;
+  }
+  thead th {
+    background  : var(--navy);
+    color       : #e2e8f0;
+    padding     : 11px 16px;
+    text-align  : left;
+    font-weight : 600;
+    font-size   : 12px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+  thead th:first-child { border-radius: 8px 0 0 0; }
+  thead th:last-child  { border-radius: 0 8px 0 0; }
+  tbody tr:nth-child(even) { background: #f8fafc; }
+  tbody tr:hover           { background: var(--blue-pale); }
+  td {
+    padding     : 11px 16px;
+    border-bottom: 1px solid var(--border);
+    color       : var(--text-mid);
+    vertical-align: top;
+  }
+  td code, th code {
+    background  : #f1f5f9;
+    padding     : 1px 6px;
+    border-radius: 4px;
+    font-family : var(--mono);
+    font-size   : 12px;
+    color       : #0f172a;
+  }
+
+  /* ── Code block ─────────────────────────────────────────────────── */
+  pre {
+    background  : #0f172a;
+    color       : #e2e8f0;
+    border-radius: var(--radius);
+    padding     : 20px 22px;
+    overflow-x  : auto;
+    font-family : var(--mono);
+    font-size   : 13px;
+    line-height : 1.7;
+    margin      : 16px 0;
+    border-left : 4px solid var(--blue-light);
+  }
+  pre .c  { color: #64748b; }
+  pre .k  { color: #93c5fd; }
+  pre .s  { color: #86efac; }
+  pre .f  { color: #fde68a; }
+  pre .p  { color: #f9a8d4; }
+  pre .n  { color: #e2e8f0; }
+  pre .o  { color: #94a3b8; }
+
+  /* ── Pipeline diagram ───────────────────────────────────────────── */
+  .pipeline {
+    display     : flex;
+    flex-direction: column;
+    gap         : 4px;
+    margin      : 20px 0;
+  }
+  .pipe-step {
+    display     : flex;
+    align-items : center;
+    gap         : 14px;
+  }
+  .pipe-box {
+    flex        : 1;
+    display     : flex;
+    align-items : center;
+    gap         : 14px;
+    background  : var(--white);
+    border      : 1px solid var(--border);
+    border-radius: 8px;
+    padding     : 12px 18px;
+    box-shadow  : var(--shadow);
+    min-height  : 54px;
+  }
+  .pipe-box.accent-blue   { border-left: 4px solid var(--blue-light); }
+  .pipe-box.accent-teal   { border-left: 4px solid var(--teal); }
+  .pipe-box.accent-amber  { border-left: 4px solid var(--amber); }
+  .pipe-box.accent-green  { border-left: 4px solid var(--green); }
+  .pipe-box.accent-purple { border-left: 4px solid #8b5cf6; }
+  .pipe-icon {
+    font-size   : 20px;
+    flex-shrink : 0;
+    width       : 32px;
+    text-align  : center;
+  }
+  .pipe-text   { flex: 1; }
+  .pipe-name   { font-weight: 700; font-size: 13px; color: var(--navy); }
+  .pipe-detail { font-size: 11.5px; color: var(--text-lo); margin-top: 1px; }
+  .pipe-tech   {
+    font-family : var(--mono);
+    font-size   : 11px;
+    background  : #f1f5f9;
+    padding     : 2px 8px;
+    border-radius: 4px;
+    color       : var(--blue);
+    white-space : nowrap;
+  }
+  .pipe-arrow {
+    text-align  : center;
+    color       : var(--text-lo);
+    font-size   : 16px;
+    line-height : 1;
+    padding     : 2px 0;
+  }
+
+  /* ── Phase label ─────────────────────────────────────────────────── */
+  .phase-label {
+    font-size   : 10px;
+    font-weight : 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    padding     : 5px 12px;
+    border-radius: 999px;
+    display     : inline-block;
+    margin-bottom: 10px;
+  }
+  .phase-blue   { background: var(--blue-pale);  color: var(--blue); }
+  .phase-teal   { background: var(--teal-pale);  color: var(--teal); }
+
+  /* ── Badge / tag ─────────────────────────────────────────────────── */
+  .badge {
+    display     : inline-block;
+    font-size   : 11px;
+    font-weight : 600;
+    padding     : 3px 10px;
+    border-radius: 999px;
+    margin-right: 6px;
+    margin-bottom: 4px;
+  }
+  .badge-blue   { background: var(--blue-pale);  color: var(--blue); }
+  .badge-teal   { background: var(--teal-pale);  color: var(--teal); }
+  .badge-amber  { background: var(--amber-pale); color: var(--amber); }
+  .badge-green  { background: var(--green-pale); color: var(--green); }
+  .badge-red    { background: var(--red-pale);   color: var(--red); }
+  .badge-purple { background: #f3e8ff;            color: #7c3aed; }
+
+  /* ── Highlight box ──────────────────────────────────────────────── */
+  .highlight {
+    border-left : 4px solid var(--blue-light);
+    background  : var(--blue-pale);
+    padding     : 16px 20px;
+    border-radius: 0 var(--radius) var(--radius) 0;
+    margin      : 20px 0;
+  }
+  .highlight.teal  { border-left-color: var(--teal); background: var(--teal-pale); }
+  .highlight.amber { border-left-color: var(--amber); background: var(--amber-pale); }
+  .highlight p { margin: 0; font-size: 14px; color: var(--text); }
+
+  /* ── Q&A block ──────────────────────────────────────────────────── */
+  .qa-block {
+    background  : var(--white);
+    border      : 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow    : hidden;
+    margin-bottom: 16px;
+    box-shadow  : var(--shadow);
+  }
+  .qa-q {
+    background  : var(--navy);
+    color       : #e2e8f0;
+    padding     : 12px 18px;
+    font-size   : 13.5px;
+    font-weight : 600;
+    display     : flex;
+    align-items : flex-start;
+    gap         : 10px;
+  }
+  .qa-q span { opacity: .5; flex-shrink: 0; }
+  .qa-a {
+    padding     : 14px 18px;
+    font-size   : 13.5px;
+    color       : var(--text-mid);
+    border-top  : 1px solid var(--border);
+  }
+  .qa-cite {
+    margin-top  : 10px;
+    font-size   : 11.5px;
+    font-family : var(--mono);
+    background  : #f8fafc;
+    border      : 1px solid var(--border);
+    border-radius: 6px;
+    padding     : 8px 12px;
+    color       : var(--blue);
+  }
+
+  /* ── Roadmap ─────────────────────────────────────────────────────── */
+  .roadmap-phase { margin-bottom: 24px; }
+  .roadmap-phase h4 {
+    font-size   : 13px;
+    font-weight : 700;
+    color       : var(--navy);
+    margin-bottom: 10px;
+    display     : flex;
+    align-items : center;
+    gap         : 8px;
+  }
+  .roadmap-item {
+    display     : flex;
+    align-items : flex-start;
+    gap         : 10px;
+    padding     : 7px 0;
+    font-size   : 13.5px;
+    color       : var(--text-mid);
+    border-bottom: 1px solid var(--border);
+  }
+  .roadmap-item:last-child { border-bottom: none; }
+  .check-done { color: var(--green); font-size: 16px; }
+  .check-next { color: var(--blue-light); font-size: 16px; }
+  .check-fut  { color: var(--text-lo); font-size: 16px; }
+
+  /* ── Footer ──────────────────────────────────────────────────────── */
+  .footer {
+    background  : var(--navy);
+    color       : #475569;
+    text-align  : center;
+    padding     : 28px 40px;
+    font-size   : 12.5px;
+  }
+  .footer a { color: #60a5fa; text-decoration: none; }
+
+  /* ── Print ───────────────────────────────────────────────────────── */
+  @media print {
+    .toc { display: none; }
+    .main { padding: 20px; }
+    pre { background: #f1f5f9 !important; color: #0f172a !important; border: 1px solid #e2e8f0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     COVER
+══════════════════════════════════════════════════════════════════ -->
+<div class="cover">
+  <div class="cover-inner">
+    <div class="cover-badge">&#128272; Technical Report &mdash; v2.0</div>
+    <h1>Policy<span>AI</span></h1>
+    <p class="cover-sub">
+      An AI-powered HR &amp; IT Security Policy Intelligence System built on
+      Retrieval-Augmented Generation — grounding every answer in official
+      documents with exact page-level citations.
+    </p>
+    <div class="cover-meta">
+      <div class="cover-meta-item">
+        <div class="label">Author</div>
+        <div class="value">Pradeep Verma</div>
+      </div>
+      <div class="cover-meta-item">
+        <div class="label">Version</div>
+        <div class="value">2.0 — Multi-Source IT &amp; Security</div>
+      </div>
+      <div class="cover-meta-item">
+        <div class="label">Date</div>
+        <div class="value">June 2026</div>
+      </div>
+      <div class="cover-meta-item">
+        <div class="label">Deployment</div>
+        <div class="value">Hugging Face Spaces</div>
+      </div>
+    </div>
+    <div class="cover-pills">
+      <span class="pill">Python 3.10+</span>
+      <span class="pill">LangChain + LCEL</span>
+      <span class="pill">Qdrant Vector DB</span>
+      <span class="pill">Groq &middot; llama-3.1-8b</span>
+      <span class="pill">all-MiniLM-L6-v2</span>
+      <span class="pill">Gradio UI</span>
+      <span class="pill">NIST Standards</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     BODY
+══════════════════════════════════════════════════════════════════ -->
+<div class="layout">
+
+  <!-- Sidebar TOC -->
+  <nav class="toc">
+    <div class="toc-title">Contents</div>
+    <div class="toc-section">
+      <a href="#summary">Executive Summary</a>
+      <a href="#problem">The Problem</a>
+      <a href="#solution">The Solution</a>
+    </div>
+    <div class="toc-section">
+      <a href="#library">Policy Library</a>
+      <a href="#architecture">Architecture</a>
+      <div class="toc-sub">
+        <a href="#ingestion">&#8250; Ingestion Phase</a>
+        <a href="#query">&#8250; Query Phase</a>
+      </div>
+      <a href="#rag-deep">RAG Deep Dive</a>
+      <a href="#lcel">LCEL Chain</a>
+    </div>
+    <div class="toc-section">
+      <a href="#comparison">Vanilla vs LangChain</a>
+      <a href="#techstack">Tech Stack</a>
+      <a href="#qa">Sample Q&amp;A</a>
+    </div>
+    <div class="toc-section">
+      <a href="#deployment">Deployment</a>
+      <a href="#roadmap">Roadmap</a>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <main class="main">
+
+    <!-- ── Executive Summary ───────────────────────────────────────── -->
+    <section class="section" id="summary">
+      <div class="section-label">01 &mdash; Overview</div>
+      <h2>Executive Summary</h2>
+
+      <div class="grid-3" style="margin-bottom:28px;">
+        <div class="stat-card">
+          <div class="stat-num">1,602</div>
+          <div class="stat-label">Indexed Chunks</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num">5</div>
+          <div class="stat-label">Policy Sources</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num">&lt;3s</div>
+          <div class="stat-label">Avg Response Time</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <p>
+          PolicyAI is a production-grade Retrieval-Augmented Generation (RAG) system that
+          transforms static policy documents into an interactive, always-cited knowledge assistant.
+          It answers employee questions across HR, IT Security, Remote Work, Security Training,
+          and Incident Response — grounded entirely in official documents, with zero hallucination.
+        </p>
+        <p style="margin:0;">
+          The system indexes <strong>1,602 chunks</strong> from five publicly available policy
+          documents into a local Qdrant vector database. Every query performs semantic search
+          across all sources simultaneously, retrieves the top-6 most relevant chunks, and
+          generates a grounded answer through Groq's llama-3.1-8b-instant model — including
+          the exact policy name, category, and page number for each source cited.
+        </p>
+      </div>
+
+      <div class="highlight">
+        <p>
+          <strong>Key design principle:</strong> The LLM is strictly constrained to answer
+          <em>only</em> from retrieved context. If the answer is not in the indexed documents,
+          the system says so. This eliminates hallucination by design, not by luck.
+        </p>
+      </div>
+    </section>
+
+    <!-- ── The Problem ─────────────────────────────────────────────── -->
+    <section class="section" id="problem">
+      <div class="section-label">02 &mdash; Problem Statement</div>
+      <h2>The Problem</h2>
+
+      <p>Every organisation accumulates hundreds of policy documents across HR, IT Security,
+      compliance, and operations. These documents share a common fate: they are written once,
+      stored somewhere, and almost never consulted again — not because they are unimportant,
+      but because they are <strong>unsearchable</strong>.</p>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">&#8987; Time Cost</div>
+          <p style="margin:0;font-size:13.5px;">A typical policy question takes
+          <strong>25–40 minutes</strong> to answer manually — opening PDFs, searching,
+          cross-referencing versions, and replying. At 500 employees asking 3 questions
+          per week, that's <strong>1,500 manual searches every week</strong>.</p>
+        </div>
+        <div class="card">
+          <div class="card-title">&#9888; Accuracy Risk</div>
+          <p style="margin:0;font-size:13.5px;">Manual searches produce inconsistent answers
+          depending on who responds. Employees often receive outdated information, the wrong
+          document version, or a best-guess answer that no one can trace back to a specific
+          policy clause.</p>
+        </div>
+      </div>
+
+      <h3>Why Not Just Ask ChatGPT?</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Challenge</th>
+              <th>GPT Alone</th>
+              <th>PolicyAI (RAG)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Your private HR manual</td><td>&#10060; Never seen it</td><td>&#10003; Fully indexed</td></tr>
+            <tr><td>200-page NIST PDF</td><td>&#10060; Context window too small</td><td>&#10003; Retrieves only relevant chunks</td></tr>
+            <tr><td>Policy updated last week</td><td>&#10060; Training cutoff months ago</td><td>&#10003; Re-index in minutes</td></tr>
+            <tr><td>Cited, verifiable answer</td><td>&#10060; Confident but unverifiable</td><td>&#10003; Exact policy, category &amp; page</td></tr>
+            <tr><td>Private company data</td><td>&#10060; Sent to external servers</td><td>&#10003; Embeddings run fully offline</td></tr>
+            <tr><td>Multi-domain questions</td><td>&#10060; No document context</td><td>&#10003; Searches all 5 sources simultaneously</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── Policy Library ──────────────────────────────────────────── -->
+    <section class="section" id="library">
+      <div class="section-label">03 &mdash; Data Sources</div>
+      <h2>Policy Library</h2>
+
+      <p>All five documents are publicly available and downloaded automatically on first run.
+      They are cached locally in <code>data/</code> — subsequent starts skip the download entirely.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>#</th><th>Document</th><th>Category</th><th>Pages</th><th>Chunks</th><th>Source</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1</td>
+              <td><strong>HR Policy</strong></td>
+              <td><span class="badge badge-teal">Human Resources</span></td>
+              <td>18</td><td>70</td>
+              <td><code>rikalp.in</code></td>
+            </tr>
+            <tr>
+              <td>2</td>
+              <td><strong>NIST Cybersecurity Framework v1.1</strong></td>
+              <td><span class="badge badge-blue">IT Security</span></td>
+              <td>55</td><td>305</td>
+              <td><code>nvlpubs.nist.gov</code></td>
+            </tr>
+            <tr>
+              <td>3</td>
+              <td><strong>NIST SP 800-114r1: Telework &amp; Remote Access Security</strong></td>
+              <td><span class="badge badge-amber">Remote Work Security</span></td>
+              <td>44</td><td>320</td>
+              <td><code>nvlpubs.nist.gov</code></td>
+            </tr>
+            <tr>
+              <td>4</td>
+              <td><strong>NIST SP 800-50: IT Security Awareness Program</strong></td>
+              <td><span class="badge badge-purple">Security Training</span></td>
+              <td>71</td><td>359</td>
+              <td><code>nvlpubs.nist.gov</code></td>
+            </tr>
+            <tr>
+              <td>5</td>
+              <td><strong>NIST SP 800-61r2: Computer Security Incident Handling</strong></td>
+              <td><span class="badge badge-red">Incident Response</span></td>
+              <td>80</td><td>548</td>
+              <td><code>nvlpubs.nist.gov</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="highlight teal">
+        <p>
+          To add a new source, append one entry to <code>POLICY_SOURCES</code> in
+          <code>langchain_rag/config.py</code> with <code>name</code>, <code>category</code>,
+          <code>url</code>, and <code>filename</code>, then delete <code>qdrant_data/</code>
+          to trigger a full re-index on next startup.
+        </p>
+      </div>
+    </section>
+
+    <!-- ── Architecture ────────────────────────────────────────────── -->
+    <section class="section" id="architecture">
+      <div class="section-label">04 &mdash; System Design</div>
+      <h2>Architecture</h2>
+
+      <!-- Ingestion -->
+      <div id="ingestion">
+        <span class="phase-label phase-blue">Ingestion Phase &mdash; runs once per source</span>
+        <div class="pipeline">
+          <div class="pipe-step">
+            <div class="pipe-box accent-blue">
+              <div class="pipe-icon">&#128196;</div>
+              <div class="pipe-text">
+                <div class="pipe-name">Policy PDFs (5 sources)</div>
+                <div class="pipe-detail">HR Policy, NIST CSF, 800-114r1, 800-50, 800-61r2</div>
+              </div>
+              <div class="pipe-tech">requests + cache</div>
+            </div>
+          </div>
+          <div class="pipe-arrow">&#8595;</div>
+          <div class="pipe-step">
+            <div class="pipe-box accent-blue">
+              <div class="pipe-icon">&#128269;</div>
+              <div class="pipe-text">
+                <div class="pipe-name">Page Extraction</div>
+                <div class="pipe-detail">One Document object per page, with source + page metadata</div>
+              </div>
+              <div class="pipe-tech">PyMuPDFLoader</div>
+            </div>
+          </div>
+          <div class="pipe-arrow">&#8595;</div>
+          <div class="pipe-step">
+            <div class="pipe-box accent-blue">
+              <div class="pipe-icon">&#127991;</div>
+              <div class="pipe-text">
+                <div class="pipe-name">Metadata Stamping</div>
+                <div class="pipe-detail">Inject policy_name and policy_category into every page before splitting</div>
+              </div>
+              <div class="pipe-tech">doc.metadata[...]</div>
+            </div>
+          </div>
+          <div class="pipe-arrow">&#8595;</div>
+          <div class="pipe-step">
+            <div class="pipe-box accent-blue">
+              <div class="pipe-icon">&#9988;</div>
+              <div class="pipe-text">
+                <div class="pipe-name">Chunking</div>
+                <div class="pipe-detail">500-char chunks, 50-char overlap; splits at &#182;&#182; &#8594; &#182; &#8594; space &#8594; char</div>
+              </div>
+              <div class="pipe-tech">RecursiveCharacterTextSplitter</div>
+            </div>
+          </div>
+          <div class="pipe-arrow">&#8595;</div>
+          <div class="pipe-step">
+            <div class="pipe-box accent-blue">
+              <div class="pipe-icon">&#128200;</div>
+              <div class="pipe-text">
+                <div class="pipe-name">Embedding</div>
+                <div class="pipe-detail">Each chunk &#8594; 384-dimensional semantic vector; runs fully offline</div>
+              </div>
+              <div class="pipe-tech">all-MiniLM-L6-v2</div>
+            </div>
+          </div>
+          <div class="pipe-arrow">&#8595;</div>
+          <div class="pipe-step">
+            <div class="pipe-box accent-blue">
+              <div class="pipe-icon">&#128452;</div>
+              <div class="pipe-text">
+                <div class="pipe-name">Vector Storage</div>
+                <div class="pipe-detail">1,602 vectors + full text + metadata stored in HNSW index</div>
+              </div>
+              <div class="pipe-tech">Qdrant local file store</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <br/>
+
+      <!-- Query -->
+      <div id="query">
+        <span class="phase-label phase-teal">Query Phase &mdash; runs on every question</span>
+        <div class="pipeline">
+          <div class="pipe-step">
+            <div class="pipe-box accent-teal">
+              <div class="pipe-icon">&#128172;</div>
+              <div class="pipe-text">
+                <div class="pipe-name">User Question</div>
+                <div class="pipe-detail">"What do I do if I suspect a phishing attack?"</div>
+              </div>
+              <div class="pipe-tech">plain text input</div>
+            </div>
+          </div>
+          <div class="pipe-arrow">&#8595;</div>
+          <div class="pipe-step">
+            <div class="pipe-box accent-teal">
+              <div class="pipe-icon">&#128200;</div>
+              <div class="pipe-text">
+                <div class="pipe-name">Query Embedding</div>
+                <div class="pipe-detail">Same model as ingestion — vectors are only comparable within the same model</div>
+              </div>
+              <div class="pipe-tech">all-MiniLM-L6-v2</div>
+            </div>
+          </div>
+          <div class="pipe-arrow">&#8595;</div>
+          <div class="pipe-step">
+            <div class="pipe-box accent-teal">
+              <div class="pipe-icon">&#128269;</div>
+              <div class="pipe-text">
+                <div class="pipe-name">Semantic Retrieval</div>
+                <div class="pipe-detail">Top-6 most similar chunks across all 5 policy sources, millisecond search</div>
+              </div>
+              <div class="pipe-tech">Qdrant HNSW &mdash; k=6</div>
+            </div>
+          </div>
+          <div class="pipe-arrow">&#8595;</div>
+          <div class="pipe-step">
+            <div class="pipe-box accent-teal">
+              <div class="pipe-icon">&#127991;</div>
+              <div class="pipe-text">
+                <div class="pipe-name">Context Formatting</div>
+                <div class="pipe-detail">[NIST SP 800-61r2 [Incident Response] &#8212; Page 21] &lt;chunk text&gt;</div>
+              </div>
+              <div class="pipe-tech">format_docs()</div>
+            </div>
+          </div>
+          <div class="pipe-arrow">&#8595;</div>
+          <div class="pipe-step">
+            <div class="pipe-box accent-teal">
+              <div class="pipe-icon">&#129302;</div>
+              <div class="pipe-text">
+                <div class="pipe-name">LLM Generation</div>
+                <div class="pipe-detail">Constrained to context only; temperature 0.2 for factual, deterministic answers</div>
+              </div>
+              <div class="pipe-tech">Groq &mdash; llama-3.1-8b-instant</div>
+            </div>
+          </div>
+          <div class="pipe-arrow">&#8595;</div>
+          <div class="pipe-step">
+            <div class="pipe-box accent-teal">
+              <div class="pipe-icon">&#10003;</div>
+              <div class="pipe-text">
+                <div class="pipe-name">Grounded Answer + Citations</div>
+                <div class="pipe-detail">Answer text + source panel showing policy name, category, and page for each chunk</div>
+              </div>
+              <div class="pipe-tech">StrOutputParser + UI</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── RAG Deep Dive ───────────────────────────────────────────── -->
+    <section class="section" id="rag-deep">
+      <div class="section-label">05 &mdash; Core Concept</div>
+      <h2>RAG Pipeline Deep Dive</h2>
+
+      <h3>What is RAG?</h3>
+      <p>Retrieval-Augmented Generation augments a language model with a retrieval step.
+      Instead of relying on the model's parametric memory (what it learned during training),
+      RAG fetches <em>relevant evidence</em> from an external knowledge source at inference time,
+      then instructs the LLM to answer strictly from that evidence.</p>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">&#128202; Semantic Search vs Keyword Search</div>
+          <p style="font-size:13.5px;margin:0;">
+            Traditional search matches exact words. Semantic search matches <strong>meaning</strong>.
+            The query <em>"What do I do if someone hacks us?"</em> retrieves the incident
+            response guide even though the document never uses the word "hacks" — because
+            the 384-dimensional vector captures conceptual similarity, not string overlap.
+          </p>
+        </div>
+        <div class="card">
+          <div class="card-title">&#127919; Why 500 Characters Per Chunk?</div>
+          <p style="font-size:13.5px;margin:0;">
+            Chunks must be small enough to be <strong>topically focused</strong> (so retrieval
+            is precise) but large enough to be <strong>self-contained</strong> (so the LLM
+            has enough context). 500 chars is ~80–100 words — roughly one policy clause or
+            procedure step. The 50-char overlap prevents answers from being cut across boundaries.
+          </p>
+        </div>
+      </div>
+
+      <h3>Metadata Stamping — Why It Matters</h3>
+      <p>Every chunk carries <code>policy_name</code> and <code>policy_category</code> in its
+      metadata, stamped at load time before splitting:</p>
+
+<pre><span class="c"># Before splitting — stamp every page</span>
+<span class="k">for</span> <span class="n">doc</span> <span class="k">in</span> <span class="n">docs</span><span class="o">:</span>
+    <span class="n">doc</span><span class="o">.</span><span class="n">metadata</span><span class="o">[</span><span class="s">"policy_name"</span><span class="o">]</span>     <span class="o">=</span> <span class="n">source</span><span class="o">[</span><span class="s">"name"</span><span class="o">]</span>
+    <span class="n">doc</span><span class="o">.</span><span class="n">metadata</span><span class="o">[</span><span class="s">"policy_category"</span><span class="o">]</span> <span class="o">=</span> <span class="n">source</span><span class="o">[</span><span class="s">"category"</span><span class="o">]</span>
+
+<span class="c"># After splitting — every child chunk inherits the metadata</span>
+<span class="n">chunks</span> <span class="o">=</span> <span class="n">splitter</span><span class="o">.</span><span class="f">split_documents</span><span class="o">(</span><span class="n">docs</span><span class="o">)</span>
+<span class="c"># chunk.metadata = {"source": "...", "page": 3,</span>
+<span class="c">#                   "policy_name": "NIST SP 800-61r2: ...",</span>
+<span class="c">#                   "policy_category": "Incident Response"}</span></pre>
+
+      <p>This is why every source citation in the UI shows not just the filename and page,
+      but the human-readable policy name and domain category — without any post-processing.</p>
+    </section>
+
+    <!-- ── LCEL Chain ──────────────────────────────────────────────── -->
+    <section class="section" id="lcel">
+      <div class="section-label">06 &mdash; LangChain</div>
+      <h2>The LCEL Chain</h2>
+
+      <p>LangChain Expression Language (LCEL) lets you declare the entire RAG pipeline
+      as a single composable expression using the <code>|</code> operator.
+      Each <code>|</code> passes the output of the left component as input to the right.</p>
+
+<pre><span class="n">rag_chain</span> <span class="o">=</span> <span class="o">(</span>
+    <span class="o">{</span>
+        <span class="s">"context"</span><span class="o">:</span>  <span class="n">retriever</span> <span class="o">|</span> <span class="f">format_docs</span><span class="o">,</span>   <span class="c"># branch 1: retrieve &#8594; format</span>
+        <span class="s">"question"</span><span class="o">:</span> <span class="f">RunnablePassthrough</span><span class="o">(),</span>      <span class="c"># branch 2: pass question unchanged</span>
+    <span class="o">}</span>
+    <span class="o">|</span> <span class="n">RAG_PROMPT</span>          <span class="c"># fill {context} and {question} slots</span>
+    <span class="o">|</span> <span class="n">llm</span>                 <span class="c"># ChatGroq &#8594; returns AIMessage</span>
+    <span class="o">|</span> <span class="f">StrOutputParser</span><span class="o">()</span>   <span class="c"># extract .content string</span>
+<span class="o">)</span></pre>
+
+      <h3>Step-by-Step for "What do I do after a security breach?"</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Step</th><th>Component</th><th>Input</th><th>Output</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1</td>
+              <td><code>retriever</code></td>
+              <td>"What do I do after a security breach?"</td>
+              <td>List of 6 Document objects from Qdrant</td>
+            </tr>
+            <tr>
+              <td>2</td>
+              <td><code>format_docs</code></td>
+              <td>List[Document]</td>
+              <td>Cited context string with [Policy | Category | Page] labels</td>
+            </tr>
+            <tr>
+              <td>3</td>
+              <td><code>RunnablePassthrough</code></td>
+              <td>The question string</td>
+              <td>The question string, unchanged</td>
+            </tr>
+            <tr>
+              <td>4</td>
+              <td><code>RAG_PROMPT</code></td>
+              <td><code>{context: "...", question: "..."}</code></td>
+              <td>Filled ChatPromptValue (system + human messages)</td>
+            </tr>
+            <tr>
+              <td>5</td>
+              <td><code>ChatGroq</code></td>
+              <td>ChatPromptValue</td>
+              <td>AIMessage with generated answer</td>
+            </tr>
+            <tr>
+              <td>6</td>
+              <td><code>StrOutputParser</code></td>
+              <td>AIMessage</td>
+              <td>Plain string answer</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="highlight amber">
+        <p>
+          <strong>Swapping providers is one line.</strong> Because <code>ChatGroq</code>,
+          <code>ChatOpenAI</code>, and <code>ChatAnthropic</code> all implement the same
+          <code>ChatModel</code> interface, changing the LLM provider requires editing
+          exactly one line — nothing else in the chain needs to know.
+        </p>
+      </div>
+    </section>
+
+    <!-- ── Comparison ──────────────────────────────────────────────── -->
+    <section class="section" id="comparison">
+      <div class="section-label">07 &mdash; Implementation</div>
+      <h2>Vanilla Python vs LangChain</h2>
+
+      <p>The project implements the same RAG pipeline in two ways. The comparison makes
+      concrete what the framework actually abstracts away.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Step</th><th>&#128013; vanilla_rag</th><th>&#129408; langchain_rag</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Load PDF</strong></td>
+              <td><code>requests.get()</code> + <code>fitz.open()</code> + manual page loop</td>
+              <td><code>PyMuPDFLoader(path).load()</code> &#8594; <code>List[Document]</code></td>
+            </tr>
+            <tr>
+              <td><strong>Chunking</strong></td>
+              <td>Custom 100-word sliding window, no boundary awareness</td>
+              <td><code>RecursiveCharacterTextSplitter</code> — splits at &#182;&#182; &#8594; &#182; &#8594; space &#8594; chars</td>
+            </tr>
+            <tr>
+              <td><strong>Embed</strong></td>
+              <td><code>SentenceTransformer.encode(texts)</code> — raw numpy arrays</td>
+              <td><code>HuggingFaceEmbeddings.embed_documents()</code> — LangChain interface</td>
+            </tr>
+            <tr>
+              <td><strong>Store</strong></td>
+              <td>Manual <code>PointStruct(id, vector, payload)</code> + <code>client.upsert()</code></td>
+              <td><code>QdrantVectorStore.from_documents(docs, embedder)</code> — one call</td>
+            </tr>
+            <tr>
+              <td><strong>Retrieve</strong></td>
+              <td><code>client.query_points(collection, query_vector, limit)</code></td>
+              <td><code>vectorstore.as_retriever(k=6).invoke(query)</code></td>
+            </tr>
+            <tr>
+              <td><strong>Call LLM</strong></td>
+              <td><code>groq.chat.completions.create(model, messages)</code></td>
+              <td><code>ChatGroq(model, api_key)</code> — same interface as OpenAI/Anthropic</td>
+            </tr>
+            <tr>
+              <td><strong>Parse Output</strong></td>
+              <td><code>response.choices[0].message.content</code></td>
+              <td><code>StrOutputParser()</code> extracts <code>.content</code> from AIMessage</td>
+            </tr>
+            <tr>
+              <td><strong>Full Pipeline</strong></td>
+              <td>Explicit step-by-step <code>rag()</code> function</td>
+              <td>LCEL: <code>retriever | format_docs | prompt | llm | parser</code></td>
+            </tr>
+            <tr>
+              <td><strong>Swap LLM</strong></td>
+              <td>Edit multiple lines across the function</td>
+              <td>Change one line: <code>ChatGroq</code> &#8594; <code>ChatOpenAI</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── Tech Stack ──────────────────────────────────────────────── -->
+    <section class="section" id="techstack">
+      <div class="section-label">08 &mdash; Technology</div>
+      <h2>Tech Stack</h2>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Layer</th><th>Technology</th><th>Role</th><th>Why This Choice</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>PDF Extraction</strong></td>
+              <td><span class="badge badge-blue">PyMuPDF</span></td>
+              <td>Extract page text</td>
+              <td>Fast, reliable, preserves page-number metadata automatically</td>
+            </tr>
+            <tr>
+              <td><strong>Chunking</strong></td>
+              <td><span class="badge badge-blue">RecursiveCharSplitter</span></td>
+              <td>Split into 500-char chunks</td>
+              <td>Boundary-aware splitting preserves semantic coherence</td>
+            </tr>
+            <tr>
+              <td><strong>Embeddings</strong></td>
+              <td><span class="badge badge-teal">all-MiniLM-L6-v2</span></td>
+              <td>384-dim semantic vectors</td>
+              <td>Runs fully offline, excellent quality/size trade-off</td>
+            </tr>
+            <tr>
+              <td><strong>Vector Database</strong></td>
+              <td><span class="badge badge-teal">Qdrant</span></td>
+              <td>Store and search vectors</td>
+              <td>Local file-mode — no Docker, no server, no cost</td>
+            </tr>
+            <tr>
+              <td><strong>Search Algorithm</strong></td>
+              <td><span class="badge badge-amber">HNSW</span></td>
+              <td>Approximate nearest-neighbour</td>
+              <td>Millisecond search over 1,600+ vectors</td>
+            </tr>
+            <tr>
+              <td><strong>LLM Inference</strong></td>
+              <td><span class="badge badge-purple">Groq llama-3.1-8b</span></td>
+              <td>Answer generation</td>
+              <td>Free tier, ultra-low latency (&lt;1s generation)</td>
+            </tr>
+            <tr>
+              <td><strong>Framework</strong></td>
+              <td><span class="badge badge-blue">LangChain + LCEL</span></td>
+              <td>Pipeline orchestration</td>
+              <td>Composable, provider-agnostic, production standard</td>
+            </tr>
+            <tr>
+              <td><strong>UI</strong></td>
+              <td><span class="badge badge-green">Gradio</span></td>
+              <td>Chat interface</td>
+              <td>One-command HF Spaces deploy, bubble chat layout</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── Sample Q&A ──────────────────────────────────────────────── -->
+    <section class="section" id="qa">
+      <div class="section-label">09 &mdash; Examples</div>
+      <h2>Sample Q&amp;A</h2>
+
+      <div class="qa-block">
+        <div class="qa-q"><span>Q</span> What do I do if I suspect a phishing attack?</div>
+        <div class="qa-a">
+          When a security incident is suspected, users should immediately report it to the
+          IT Security team. Preserve all evidence — do not delete emails or logs. Isolate the
+          affected system from the network if possible. Document the timeline of events and
+          actions taken. Do not attempt remediation without guidance from the security team.
+          <div class="qa-cite">Source: NIST SP 800-61r2: Computer Security Incident Handling [Incident Response] — Page 21</div>
+        </div>
+      </div>
+
+      <div class="qa-block">
+        <div class="qa-q"><span>Q</span> What security measures are required for remote work?</div>
+        <div class="qa-a">
+          Remote workers must use organisation-approved VPN for all access to internal
+          resources. Devices must have up-to-date antivirus software, full-disk encryption
+          enabled, and automatic lock after 5 minutes of inactivity. Sensitive data must
+          not be stored on personal devices or cloud services not approved by IT.
+          <div class="qa-cite">Source: NIST SP 800-114r1: Telework &amp; Remote Access Security [Remote Work Security] — Page 12</div>
+        </div>
+      </div>
+
+      <div class="qa-block">
+        <div class="qa-q"><span>Q</span> What are the leave entitlements for employees?</div>
+        <div class="qa-a">
+          Employees are entitled to 18 Earned Leaves per calendar year. Leave is calculated
+          on a pro-rata basis for mid-year joiners. Sick leave beyond 3 consecutive days
+          requires a medical certificate. Unused Earned Leave may be carried forward up to
+          a maximum of 45 days.
+          <div class="qa-cite">Source: HR Policy [Human Resources] — Page 3</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Deployment ──────────────────────────────────────────────── -->
+    <section class="section" id="deployment">
+      <div class="section-label">10 &mdash; Operations</div>
+      <h2>Deployment</h2>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">&#128187; Local</div>
+          <pre style="margin:0;font-size:12px;"><span class="c"># Install</span>
+<span class="n">pip install -r requirements.txt</span>
+
+<span class="c"># Set API key</span>
+<span class="n">echo "GROQ_API_KEY=..." > .env</span>
+
+<span class="c"># Launch chatbot</span>
+<span class="n">python chatbot\app.py</span>
+<span class="c"># Opens at http://localhost:7860</span></pre>
+        </div>
+        <div class="card">
+          <div class="card-title">&#9729; Hugging Face Spaces</div>
+          <p style="font-size:13px;margin-bottom:12px;">
+            Push to GitHub &#8594; create Space (Gradio SDK) &#8594; link repo &#8594;
+            add <code>GROQ_API_KEY</code> secret. The Space downloads all PDFs and
+            indexes on cold start (~3 min), then serves instantly.
+          </p>
+          <p style="font-size:13px;margin:0;">
+            Live demo: <strong>huggingface.co/spaces/pradeepverma23/PolicyAI</strong>
+          </p>
+        </div>
+      </div>
+
+      <h3>First Run Sequence</h3>
+      <div class="pipeline" style="margin-top:12px;">
+        <div class="pipe-step">
+          <div class="pipe-box accent-green">
+            <div class="pipe-icon">1</div>
+            <div class="pipe-text">
+              <div class="pipe-name">Collection check</div>
+              <div class="pipe-detail"><code>pipeline.ensure_indexed()</code> queries Qdrant for collection <code>it_security_policies</code></div>
+            </div>
+          </div>
+        </div>
+        <div class="pipe-arrow">&#8595; not found</div>
+        <div class="pipe-step">
+          <div class="pipe-box accent-green">
+            <div class="pipe-icon">2</div>
+            <div class="pipe-text">
+              <div class="pipe-name">Download all 5 PDFs (~8 MB)</div>
+              <div class="pipe-detail">Each source fetched with 120s timeout; failures skipped with a warning</div>
+            </div>
+          </div>
+        </div>
+        <div class="pipe-arrow">&#8595;</div>
+        <div class="pipe-step">
+          <div class="pipe-box accent-green">
+            <div class="pipe-icon">3</div>
+            <div class="pipe-text">
+              <div class="pipe-name">Index 1,602 chunks (~2–3 min)</div>
+              <div class="pipe-detail">Embed + store all chunks; collection created with <code>force_recreate=True</code></div>
+            </div>
+          </div>
+        </div>
+        <div class="pipe-arrow">&#8595; found on subsequent starts</div>
+        <div class="pipe-step">
+          <div class="pipe-box accent-green">
+            <div class="pipe-icon">4</div>
+            <div class="pipe-text">
+              <div class="pipe-name">Gradio UI ready — http://localhost:7860</div>
+              <div class="pipe-detail">Subsequent starts skip steps 2–3 entirely</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Roadmap ─────────────────────────────────────────────────── -->
+    <section class="section" id="roadmap">
+      <div class="section-label">11 &mdash; Future Work</div>
+      <h2>Roadmap</h2>
+
+      <div class="roadmap-phase">
+        <h4><span class="badge badge-green">Phase 1</span> Complete</h4>
+        <div class="roadmap-item"><span class="check-done">&#10003;</span>HR Policy document ingestion and Q&amp;A</div>
+        <div class="roadmap-item"><span class="check-done">&#10003;</span>Page-level citations in answers</div>
+        <div class="roadmap-item"><span class="check-done">&#10003;</span>Semantic search with Qdrant HNSW index</div>
+        <div class="roadmap-item"><span class="check-done">&#10003;</span><code>vanilla_rag/</code> — pure Python, no frameworks</div>
+        <div class="roadmap-item"><span class="check-done">&#10003;</span><code>langchain_rag/</code> — LangChain + LCEL chain</div>
+        <div class="roadmap-item"><span class="check-done">&#10003;</span><code>chatbot/</code> — Gradio UI, Hugging Face Spaces ready</div>
+      </div>
+
+      <div class="roadmap-phase">
+        <h4><span class="badge badge-green">Phase 2</span> Complete</h4>
+        <div class="roadmap-item"><span class="check-done">&#10003;</span>Multi-domain: HR + IT Security + Incident Response + Remote Work</div>
+        <div class="roadmap-item"><span class="check-done">&#10003;</span>5 publicly available NIST + HR policy sources auto-indexed</div>
+        <div class="roadmap-item"><span class="check-done">&#10003;</span>Policy category tags on every source citation</div>
+        <div class="roadmap-item"><span class="check-done">&#10003;</span>Configurable <code>POLICY_SOURCES</code> list for easy extension</div>
+      </div>
+
+      <div class="roadmap-phase">
+        <h4><span class="badge badge-blue">Phase 3</span> Next</h4>
+        <div class="roadmap-item"><span class="check-next">&#9654;</span>Source filtering — HR questions search only HR docs</div>
+        <div class="roadmap-item"><span class="check-next">&#9654;</span>Upgrade PDF parsing to Docling (hierarchical, structure-aware chunking)</div>
+        <div class="roadmap-item"><span class="check-next">&#9654;</span>Add HTML / web page support for policies not available as PDFs</div>
+        <div class="roadmap-item"><span class="check-next">&#9654;</span>Streaming responses in the Gradio UI</div>
+      </div>
+
+      <div class="roadmap-phase">
+        <h4><span class="badge badge-amber">Phase 4</span> Future</h4>
+        <div class="roadmap-item"><span class="check-fut">&#9675;</span>REST API via FastAPI for integration with other systems</div>
+        <div class="roadmap-item"><span class="check-fut">&#9675;</span>Slack bot integration — ask policy questions from Slack</div>
+        <div class="roadmap-item"><span class="check-fut">&#9675;</span>Role-based access — employees see only permitted documents</div>
+        <div class="roadmap-item"><span class="check-fut">&#9675;</span>Conflict detection — "Do these two policies contradict each other?"</div>
+        <div class="roadmap-item"><span class="check-fut">&#9675;</span>Auto-refresh — re-index automatically when a document is updated</div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     FOOTER
+══════════════════════════════════════════════════════════════════ -->
+<div class="footer">
+  PolicyAI &mdash; Technical Report v2.0 &nbsp;&middot;&nbsp; June 2026
+  &nbsp;&middot;&nbsp;
+  <a href="https://huggingface.co/spaces/pradeepverma23/PolicyAI">Live Demo</a>
+  &nbsp;&middot;&nbsp;
+  Built with LangChain &middot; Qdrant &middot; Groq &middot; Gradio
+</div>
+
+</body>
+</html>
